@@ -99,6 +99,7 @@ listGOAnnotations <- function(species = NULL, database = "ensembl", goRelease = 
                               ensemblRelease = NULL, custom = NULL, fileName = NULL,
                               path = NULL, returnLatest = FALSE) {
   # Check inputs-
+  #browser()
   assertthat::assert_that(is.null(path) | isValidString(path),
                           msg = "Argument 'path' should be a character vector with length of one"
   )
@@ -190,21 +191,24 @@ listGOAnnotations <- function(species = NULL, database = "ensembl", goRelease = 
       return(file_info)
     } else {
       latest_go <- max(file_info$goRelease)
-      latest_go_files <- file_info[complete.cases(file_info$ensemblRelease) &
-                                     file_info$goRelease %in% latest_go,]
-      latest_ensemlb <- max(latest_go_files$ensemblRelease)#, na.rm = TRUE)????????????????
-      latest_file <- latest_go_files[latest_go_files$ensemblRelease == latest_ensemlb,]
-      assertthat::assert_that(nrow(latest_file) == 1,
-                              msg = cat(c("Multipe annotation file matches:", "", capture.output(latest_file),
-                                          ), sep = "\n")
-      )
-      
-      return(latest_file)
-      
+      latest_go_files <- file_info[file_info$goRelease %in% latest_go,]
+      if (custom != ""){
+        return(latest_go_files)
+      } else {
+        
+        latest_ensemlb <- max(na.omit(latest_go_files$ensemblRelease))#, na.rm = TRUE)????????????????
+        latest_file <- latest_go_files[latest_go_files$ensemblRelease %in% latest_ensemlb,]
+        assertthat::assert_that(nrow(latest_file) == 1,
+                                msg = cat(c("Multipe annotation file matches:", "", capture.output(latest_file)
+                                            ), sep = "\n")
+        )
+        
+        return(latest_file)
+      }
     }
-  } else {
-    file_info <- selectedFileInfo(selected_files)
-  } 
+    } else {
+      file_info <- selectedFileInfo(selected_files)
+    } 
   
   
   file_info
@@ -231,12 +235,12 @@ listGOAnnotations <- function(species = NULL, database = "ensembl", goRelease = 
 ##'
 ##' @return list of evoGO objects containing the annotation (one per GO domain).
 ##' @export
-getGOAnnotation <- function(species, database = "ensembl", nCores = 1, save = TRUE,
+getGOAnnotation <- function(species = NULL, database = "ensembl", nCores = 1, save = TRUE,
                             path = NULL, deletePrevious = FALSE, goRelease = NULL,
                             ensemblRelease = NULL, customAnnotation = NULL, customName = NULL) {
   
   # Check inputs
-  browser()
+#  browser()
   if (is.null(customAnnotation) & is.null(customName)) {
     assertthat::assert_that(isValidString(database),
                             msg = "'database' should be a character vector with length of one"
@@ -423,7 +427,7 @@ getGOAnnotation <- function(species, database = "ensembl", nCores = 1, save = TR
 ##' @export
 loadGOAnnotation <- function(species = NULL, database = "ensembl", goRelease = NULL,
                              ensemblRelease = NULL, customName = NULL, fileName = NULL, path = NULL) {
-  browser()
+ # browser()
   # Check inputs
   assertthat::assert_that(is.null(path) | isValidString(path),
                           msg = "Argument 'path' should be a character vector with length of one"
