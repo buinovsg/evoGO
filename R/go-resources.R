@@ -6,6 +6,8 @@
 
 ##' Retrieve the ontologyIndex object from the obolibrary.
 ##'
+##'##' @param goRelease GO release date in yyyy-mm-dd format (e.g., "2022-01-31").
+##' If not specified, latest saved version is loaded
 ##' @return ontologyIndex object
 ##' @export
 getOBO <- function(goRelease = NULL) {
@@ -26,7 +28,6 @@ getOBO <- function(goRelease = NULL) {
   )
   go
 }
-
 
 ##' Create an input data.frame for evoGO constructor function.
 ##'
@@ -66,6 +67,8 @@ ontologyIndex2graph <- function(go, rootName = "cellular_component") {
 ##' @param biomart the name of the biomart database (default "ensembl").
 ##' @param dataset the name of the dataset (default "hsapiens_gene_ensembl"),
 ##'   use `biomaRt::listDatasets` to see the available ones.
+##' @param ensemblRelease gene annotation version (e.g., 100 for Ensembl). If not specified,
+##' latest saved version is loaded
 ##'
 ##' @return an object to use as a geneSets argument for evoGO constructor
 ##'   function.
@@ -130,14 +133,32 @@ selectedFileInfo <- function(f) {
   
 }
 
-listGOAnnotations <- function(species = NULL, database = "ensembl", goRelease = NULL,
-                              ensemblRelease = NULL, custom = NULL, path = NULL, returnLatest = FALSE) {
+
+
+##' List previously saved annotation files
+##'
+##' @param species species identifier (example: 'hsapiens' for human)
+##' @param path path to a directory where the result will be saved. If NULL, the file
+##' will be saved to the package 'extdata' directory
+##' @param goRelease GO release date in yyyy-mm-dd format (e.g., "2022-01-31").
+##' If not specified, latest version is retrieved
+##' @param ensemblRelease gene annotation version (e.g., 100 for Ensembl). If not specified,
+##' latest version is retrieved
+##' @param customName a string used to save the evoGO annotation object
+##' @param returnLatest logical value indicating whether to return information for a
+##' single annotation file based on available latest releases
+##'
+##' @return a data frame containing information about previously saved annotations which
+##' match specified filters
+##' @export
+listGOAnnotations <- function(species = NULL, goRelease = NULL, database = "ensembl",
+                              ensemblRelease = NULL, customName = NULL, path = NULL, returnLatest = FALSE) {
   # Check inputs-
-  assertthat::assert_that(!is.null(species) || !is.null(custom),
-                          msg = "Either 'species' or 'custom' argument has to be provided"
+  assertthat::assert_that(!is.null(species) || !is.null(customName),
+                          msg = "Either 'species' or 'customName' argument has to be provided"
   )
-  assertthat::assert_that(is.null(species) != is.null(custom),
-                        msg = "Only one of 'species' and 'custom' arguments can be provided"
+  assertthat::assert_that(is.null(species) != is.null(customName),
+                        msg = "Only one of 'species' and 'customName' arguments can be provided"
   )
   assertthat::assert_that(is.null(path) | isValidString(path),
                           msg = "Argument 'path' should be a character vector with length of one"
@@ -153,8 +174,8 @@ listGOAnnotations <- function(species = NULL, database = "ensembl", goRelease = 
   )
   assertthat::assert_that(isValidGO(goRelease))
   assertthat::assert_that(isValidEnsembl(ensemblRelease))
-  assertthat::assert_that(is.null(custom) | isValidString(custom),
-                          msg = "Argument 'custom' should be a character vector with length of one"
+  assertthat::assert_that(is.null(customName) | isValidString(customName),
+                          msg = "Argument 'customName' should be a character vector with length of one"
   )
 
   # Check path
@@ -168,9 +189,9 @@ listGOAnnotations <- function(species = NULL, database = "ensembl", goRelease = 
   
   # Get file name
   goRelease <- ifelse(is.null(goRelease), "", paste0("__go", gsub('-','',goRelease)))
-  ensemblRelease <- ifelse(is.null(ensemblRelease), "", paste0("__ensembl", ensemblRelease))
+  ensemblRelease <- ifelse(is.null(ensemblRelease), "", paste0("__", database, ensemblRelease))
   species <- ifelse(is.null(species), "", species)
-  custom <- ifelse(is.null(custom), "", custom)
+  customName <- ifelse(is.null(customName), "", customName)
   all_files <- list.files(path)
   assertthat::assert_that(length(all_files[grepl("\\.rds$", all_files)]) != 0,
                           msg = "No previously saved annotations found")
@@ -182,7 +203,7 @@ listGOAnnotations <- function(species = NULL, database = "ensembl", goRelease = 
       grepl(goRelease, all_files) &
       grepl(ensemblRelease, all_files) &
       grepl(species, all_files) &
-      grepl(custom, all_files)
+      grepl(customName, all_files)
   ]
   if (length(selected_files) == 0) {
     message("No matching annotation files found. Run listGOAnnotations() to view available files")
@@ -193,11 +214,11 @@ listGOAnnotations <- function(species = NULL, database = "ensembl", goRelease = 
     file_info <- selectedFileInfo(selected_files)
     latest_go <- max(file_info$goRelease)
     latest_go_files <- file_info[file_info$goRelease %in% latest_go,]
-    if (custom != ""){
+    if (customName != ""){
       assertthat::assert_that(nrow(latest_go_files) == 1,
                               msg = paste("Multiple annotation file matches:", "", 
                                           paste(capture.output(file_info), collapse = "\n"), "",
-                                          "Please provide a more explicit 'custom' argument", sep = "\n")
+                                          "Please provide a more explicit 'customName' argument", sep = "\n")
       )
       return(latest_go_files)
     } else {
@@ -218,7 +239,6 @@ listGOAnnotations <- function(species = NULL, database = "ensembl", goRelease = 
   file_info
 }
 
-#message("Multiple annotation file matches:\n\n", paste0(capture.output(file_info), collapse = "\n"), "\n\nFile with latest releases will be loaded")
 
 
 ##' Retrieve and save the latest annotation for species of interest
@@ -237,6 +257,10 @@ listGOAnnotations <- function(species = NULL, database = "ensembl", goRelease = 
 ##' If not specified, latest version is retrieved
 ##' @param ensemblRelease gene annotation version (e.g., 100 for Ensembl). If not specified,
 ##' latest version is retrieved
+##' @param customAnnotation a named list where the elements are character vectors containing 
+##' annotation terms and the names of the vectors are character GO terms associated with the annotation
+##' terms. See output of getGeneSets() as format reference
+##' @param customName a string used to save the evoGO annotation object
 ##'
 ##' @return list of evoGO objects containing the annotation (one per GO domain).
 ##' @export
@@ -418,27 +442,26 @@ getGOAnnotation <- function(species = NULL, database = "ensembl", nCores = 1, sa
 ##' @return list of evoGO objects containing the latest annotation (one per GO domain).
 ##' @export
 loadGOAnnotation <- function(species = NULL, database = "ensembl", goRelease = NULL,
-                             ensemblRelease = NULL, customName = NULL, fileName = NULL, path = NULL) {
+                             ensemblRelease = NULL, customName = NULL, path = NULL) {
   # Check inputs
   assertthat::assert_that(is.null(path) | isValidString(path),
                           msg = "Argument 'path' should be a character vector with length of one"
   )
+  assertthat::assert_that(is.null(species) | isValidString(species),
+                          msg = "Argument 'species' should be a character vector with length of one"
+  )
+  assertthat::assert_that(isValidString(database),
+                          msg = "Argument 'database' should be a character vector with length of one"
+  )
+  assertthat::assert_that(database == "ensembl",
+                          msg = "Only Ensembl database is currently supported"
+  )
+  assertthat::assert_that(isValidGO(goRelease))
+  assertthat::assert_that(isValidEnsembl(ensemblRelease))
+  assertthat::assert_that(is.null(customName) | isValidString(customName),
+                          msg = "Argument 'customName' should be a character vector with length of one"
+  )
   
-  if (!is.null(fileName)) {
-    assertthat::assert_that(isValidString(fileName),
-                            msg = "Argument 'fileName' should be a character vector with length of one"
-    )
-  } else {
-    assertthat::assert_that(is.null(species) | isValidString(species),
-                            msg = "Argument 'species' should be a character vector with length of one"
-    )
-    assertthat::assert_that(isValidString(database),
-                            msg = "Argument 'database' should be a character vector with length of one"
-    )
-    assertthat::assert_that(database == "ensembl",
-                            msg = "Only Ensembl database is currently supported"
-    )
-  }
   # Check path
   if (is.null(path)) {
     package_dir <- path.package("evoGO")
@@ -448,23 +471,22 @@ loadGOAnnotation <- function(species = NULL, database = "ensembl", goRelease = N
                           msg = paste0("Path ", path, " is not available")
   )
   
-  if (!is.null(fileName)) {
-    file_name <- fileName
-  } else {
-    files <- listGOAnnotations(species = species, database = database, goRelease = goRelease,
-                              ensemblRelease = ensemblRelease, custom = customName,  path = NULL)
-    if (nrow(files) == 1) {
-      file_name <- files$fileName
-    } else if (nrow(files) > 1) {
-      message(cat(c("Multiple annotation file matches:", "", capture.output(files),
-                    "", "File with latest releases will be loaded"), sep = "\n"))
-      file_name <- listGOAnnotations(species = species, database = database, goRelease = goRelease,
-                                ensemblRelease = ensemblRelease, custom = customName,  path = NULL,
-                                returnLatest = TRUE)$fileName
-    }
- 
-    message(paste0(file_name, ".rds", " will be loaded"))
+  file_info <- listGOAnnotations(species = species, database = database, goRelease = goRelease,
+                            ensemblRelease = ensemblRelease, custom = customName,  path = NULL)
+  if (nrow(file_info) == 1) {
+    file_name <- file_info$fileName
+  } else if (nrow(file_info) > 1) {
+    message("Multiple annotation file matches:\n\n",
+            paste0(capture.output(file_info), collapse = "\n"),
+            "\n\nFile with latest releases will be loaded")
+    
+    file_name <- listGOAnnotations(species = species, database = database, goRelease = goRelease,
+                              ensemblRelease = ensemblRelease, custom = customName,  path = NULL,
+                              returnLatest = TRUE)$fileName
   }
+
+  message(paste0(file_name, ".rds", " will be loaded"))
+  
   
   
   full_file_name <- file.path(path, paste0(file_name, ".rds"))
