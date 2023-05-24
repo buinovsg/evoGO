@@ -102,38 +102,6 @@ getGeneSets <- function(biomart = "ensembl", dataset = "hsapiens_gene_ensembl", 
   split(gene_annot$ensembl_gene_id, gene_annot$go_id)
 }
 
-selectedFileInfo <- function(f) {
-  selected_files <- gsub(pattern = "\\.rds$", "", f)
-  file_info <- list()
-  for (i in 1:length(selected_files)) {
-    file <- selected_files[i]
-    name_split <- strsplit(file, split = "__")[[1]]
-    go <- substring(name_split[startsWith(name_split, "go")], 3)
-    #address files produced using previous version of evoGO
-    if (length(name_split) == 3) {
-      ensembl <- NA
-      custom <- name_split[3]
-    } else {
-      ensembl <- name_split[startsWith(name_split, "ensembl")]
-      ensembl <- ifelse(length(ensembl) == 0, NA, substring(ensembl, 8))
-      custom <- name_split[startsWith(name_split, "custom")]
-      custom <- ifelse(length(custom) == 0, NA, substring(custom, 7))
-    }
-    info <- c(go, ensembl, custom, file)
-    file_info[[i]] <- info
-  }
-  file_info <- as.data.frame(do.call(rbind, file_info))
-  
-  names(file_info) <- c("goRelease", "ensemblRelease", "custom", "fileName")
-  file_info$goRelease <- as.Date(file_info$goRelease, "%Y%m%d")
-  file_info$ensemblRelease <- as.integer(file_info$ensemblRelease)
-  
-  file_info <- file_info[order(file_info$goRelease, decreasing=TRUE),]
-  file_info
-  
-}
-
-
 
 ##' List previously saved annotation files
 ##'
@@ -153,7 +121,7 @@ selectedFileInfo <- function(f) {
 ##' @export
 listGOAnnotations <- function(species = NULL, goRelease = NULL, database = "ensembl",
                               ensemblRelease = NULL, customName = NULL, path = NULL, returnLatest = FALSE) {
-  # Check inputs-
+  # Check inputs
   assertthat::assert_that(!is.null(species) || !is.null(customName),
                           msg = "Either 'species' or 'customName' argument has to be provided"
   )
@@ -187,37 +155,59 @@ listGOAnnotations <- function(species = NULL, goRelease = NULL, database = "ense
                           msg = paste0("Path ", path, " is not available")
   )
   
-  # Get file name
-  goRelease <- ifelse(is.null(goRelease), "", paste0("__go", gsub('-','',goRelease)))
-  ensemblRelease <- ifelse(is.null(ensemblRelease), "", paste0("__", database, ensemblRelease))
-  species <- ifelse(is.null(species), "", species)
-  customName <- ifelse(is.null(customName), "", customName)
   all_files <- list.files(path)
-  assertthat::assert_that(length(all_files[grepl("\\.rds$", all_files)]) != 0,
+  all_rds_files <- all_files[grepl("^evogo__", all_files) & grepl("\\.rds$", all_files)]
+  assertthat::assert_that(length(all_rds_files) != 0,
                           msg = "No previously saved annotations found")
   
-  # Assume newer versions of GO data may only have same or newer versions of annotation and vice versa
-  selected_files <- all_files[
-    grepl("^evogo__", all_files) &
-      grepl("\\.rds$", all_files) &
-      grepl(goRelease, all_files) &
-      grepl(ensemblRelease, all_files) &
-      grepl(species, all_files) &
-      grepl(customName, all_files)
-  ]
-  if (length(selected_files) == 0) {
+  # Data frame with information about all annotation files
+  file_names <- gsub(pattern = "\\.rds$", "", all_rds_files)
+  file_info <- list()
+  for (i in 1:length(file_names)) {
+    file <- file_names[i]
+    name_split <- strsplit(file, split = "__")[[1]]
+    go <- substring(name_split[startsWith(name_split, "go")], 3)
+    #address files produced using previous version of evoGO
+    if (length(name_split) == 3) {
+      ensembl <- NA
+      custom <- name_split[3]
+      sp <- NA
+    } else {
+      ensembl <- name_split[startsWith(name_split, database)]
+      ensembl <- ifelse(length(ensembl) == 0, NA, substring(ensembl, 8))
+      custom <- name_split[startsWith(name_split, "custom")]
+      custom <- ifelse(length(custom) == 0, NA, substring(custom, 7))
+      sp <- name_split[startsWith(name_split, "species")]
+      sp <- ifelse(length(ensembl) == 0, NA, substring(sp, 8))
+    }
+    info <- c(go, ensembl, custom, sp, file)
+    file_info[[i]] <- info
+  }
+  file_info <- as.data.frame(do.call(rbind, file_info))
+  file_info[,1] <- as.Date(file_info[,1], "%Y%m%d")
+  file_info[,2] <- as.integer(file_info[,2])
+  
+  #filter available file information based on user-provided arguments
+  selected_info <- dplyr::filter(file_info, if (!is.null(goRelease)) grepl(goRelease, file_info[,1]) else TRUE) %>%
+    dplyr::filter(., if (!is.null(ensemblRelease)) grepl(paste0('\\b',ensemblRelease,'\\b'), .[,2]) else TRUE) %>%
+    dplyr::filter(., if (!is.null(customName)) grepl(customName, .[,3]) else TRUE) %>%
+    dplyr::filter(., if (!is.null(species)) grepl(species, .[,4]) else TRUE)
+  
+  if (nrow(selected_info) == 0) {
     message("No matching annotation files found. Run listGOAnnotations() to view available files")
     return(NULL)
   }
+  names(selected_info) <- c("goRelease", "ensemblRelease", "customName", "species", "fileName")
+  selected_info <- selected_info[order(selected_info$goRelease, decreasing=TRUE),]
+  
 
   if (returnLatest == TRUE) {
-    file_info <- selectedFileInfo(selected_files)
-    latest_go <- max(file_info$goRelease)
-    latest_go_files <- file_info[file_info$goRelease %in% latest_go,]
-    if (customName != ""){
+    latest_go <- max(selected_info$goRelease)
+    latest_go_files <- selected_info[selected_info$goRelease %in% latest_go,]
+    if (!is.null(customName)){
       assertthat::assert_that(nrow(latest_go_files) == 1,
                               msg = paste("Multiple annotation file matches:", "", 
-                                          paste(capture.output(file_info), collapse = "\n"), "",
+                                          paste(capture.output(latest_go_files), collapse = "\n"), "",
                                           "Please provide a more explicit 'customName' argument", sep = "\n")
       )
       return(latest_go_files)
@@ -226,17 +216,14 @@ listGOAnnotations <- function(species = NULL, goRelease = NULL, database = "ense
       latest_file <- latest_go_files[latest_go_files$ensemblRelease %in% latest_ensemlb,]
       assertthat::assert_that(nrow(latest_file) == 1,
                               msg = paste("Multiple annotation file matches:", "",
-                                          paste(capture.output(file_info), collapse = "\n"), "",
+                                          paste(capture.output(latest_file), collapse = "\n"), "",
                                           "Please provide more filter arguments", sep = "\n")
       )
       return(latest_file)
       }
-  } else {
-    file_info <- selectedFileInfo(selected_files)
-  } 
-
+  }
   
-  file_info
+  selected_info
 }
 
 
@@ -291,6 +278,9 @@ getGOAnnotation <- function(species = NULL, database = "ensembl", nCores = 1, sa
     assertthat::assert_that(isValidString(customName) & !grepl( "__", customName, fixed = TRUE),
                             msg = "'customName' should be a character vector with length of one and should not contain \"__\""
     )
+    if (!is.null(ensemblRelease)) {
+      message("'ensemblRelease' specified by the user but is ignored when using custom annotation")
+    }
     if (!is.null(species)) {
       message("'species' specified by the user but is ignored when using custom annotation")
     }
@@ -350,7 +340,7 @@ getGOAnnotation <- function(species = NULL, database = "ensembl", nCores = 1, sa
       "evogo__go", gsub(
         pattern = "-", replacement = "",
         x = goVersion
-      ), "__ensembl", database_version, "_", species, ".rds" ################add__species
+      ), "__ensembl", database_version, "__species", species, ".rds" ################add__species
     )
     full_file_name <- file.path(path, file_name)
     if (file.exists(full_file_name)) {

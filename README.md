@@ -76,7 +76,7 @@ goAnnotation <- loadGOAnnotation("hsapiens")
 In the following example of GO enrichment analysis, we use one of the sample datasets 
 included with the package. The data was obtained by performing differential expression 
 analysis for heart and brain human tissue samples available from the 
-[GTEx V8 database](https://gtexportal.org/)(see the package documentation for details).
+[GTEx V8 database] (https://gtexportal.org/)(see the package documentation for details).
 
 ```r
 # Get IDs of differentially expressed genes
