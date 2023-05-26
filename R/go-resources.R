@@ -456,27 +456,11 @@ loadGOAnnotation <- function(species = NULL, database = "ensembl", goRelease = N
   )
 
   # Find files matching filter arguments
-  file_info <- listGOAnnotations(
+  file_name <- listGOAnnotations(
     species = species, database = database, goRelease = goRelease,
-    ensemblRelease = ensemblRelease, custom = customName, path = path
-  )
+    ensemblRelease = ensemblRelease, custom = customName, path = path, returnLatest = TRUE
+  )$fileName
 
-  if (nrow(file_info) == 1) {
-    file_name <- file_info$fileName
-    # Retrieve latest file
-  } else if (nrow(file_info) > 1) {
-    message(
-      "Multiple annotation file matches:\n\n",
-      paste0(capture.output(file_info), collapse = "\n"),
-      "\n\nFile with latest releases will be loaded"
-    )
-
-    file_name <- listGOAnnotations(
-      species = species, database = database, goRelease = goRelease,
-      ensemblRelease = ensemblRelease, custom = customName, path = path,
-      returnLatest = TRUE
-    )$fileName
-  }
 
   message(paste0(file_name, ".rds", " will be loaded"))
 
