@@ -120,7 +120,6 @@ getGeneSets <- function(biomart = "ensembl", dataset = "hsapiens_gene_ensembl", 
 listGOAnnotations <- function(species = NULL, goRelease = NULL, database = "ensembl",
                               ensemblRelease = NULL, customName = NULL, path = NULL, returnLatest = FALSE) {
   # Check inputs
- # browser()
   assertthat::assert_that(is.null(path) | isValidString(path),
     msg = "Argument 'path' should be a character vector with length of one"
   )
@@ -192,10 +191,9 @@ listGOAnnotations <- function(species = NULL, goRelease = NULL, database = "ense
     dplyr::filter(., if (!is.null(customName)) grepl(customName, .[, 3]) else TRUE) %>%
     dplyr::filter(., if (!is.null(species)) grepl(species, .[, 4]) else TRUE)
 
-  if (nrow(selected_info) == 0) {
-    message("No matching annotation files found. Run listGOAnnotations() to view available files")
-    return(NULL)
-  }
+  assertthat::assert_that(nrow(selected_info) != 0,
+    msg = "No matching annotation files found. Run listGOAnnotations() to view available files"
+  )
   
   names(selected_info) <- c("goRelease", "ensemblRelease", "customName", "species", "fileName")
   selected_info <- selected_info[order(selected_info$goRelease, decreasing = TRUE), ]
@@ -452,21 +450,37 @@ loadGOAnnotation <- function(species = NULL, database = "ensembl", goRelease = N
     path <- file.path(package_dir, "extdata")
   }
   assertthat::assert_that(file.access(path, mode = 4) == 0,
-    msg = paste0("Path ", path, " is not available")
+                          msg = paste0("Path ", path, " is not available")
   )
-
+  
   # Find files matching filter arguments
-  file_name <- listGOAnnotations(
+  file_info <- listGOAnnotations(
     species = species, database = database, goRelease = goRelease,
-    ensemblRelease = ensemblRelease, custom = customName, path = path, returnLatest = TRUE
-  )$fileName
-
-
+    ensemblRelease = ensemblRelease, custom = customName, path = path
+  )
+  
+  if (nrow(file_info) == 1) {
+    file_name <- file_info$fileName
+    # Retrieve latest file
+  } else if (nrow(file_info) > 1) {
+    message(
+      "Multiple annotation file matches:\n\n",
+      paste0(capture.output(file_info), collapse = "\n"),
+      "\n\nFile with latest releases will be loaded"
+    )
+    
+    file_name <- listGOAnnotations(
+      species = species, database = database, goRelease = goRelease,
+      ensemblRelease = ensemblRelease, custom = customName, path = path,
+      returnLatest = TRUE
+    )$fileName
+  }
+  
   message(paste0(file_name, ".rds", " will be loaded"))
-
+  
   full_file_name <- file.path(path, paste0(file_name, ".rds"))
   assertthat::assert_that(file.access(full_file_name, mode = 4) == 0,
-    msg = paste0("File ", full_file_name, " is not available")
+                          msg = paste0("File ", full_file_name, " is not available")
   )
   readRDS(full_file_name)
 }
