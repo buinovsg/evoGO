@@ -106,6 +106,8 @@ getGeneSets <- function(biomart = "ensembl", dataset = "hsapiens_gene_ensembl", 
 ##' List previously saved annotation files based on specified filter arguments
 ##'
 ##' @param species species identifier (example: 'hsapiens' for human)
+##' @param database database used for acquiring of genesets. Only 'ensembl' is
+##'  currently supported
 ##' @param path path to the directory where the annotations files were saved
 ##' @param goRelease GO release date in yyyy-mm-dd format (e.g., "2022-01-31")
 ##' @param ensemblRelease numeric gene annotation version (e.g., 100 for Ensembl)
@@ -331,7 +333,7 @@ getGOAnnotation <- function(species = NULL, database = "ensembl", nCores = 1, sa
     dataset <- ensembl_datasets[1, "dataset"]
 
     if (is.null(ensemblRelease)) {
-      ensembl_archive <- listEnsemblArchives()
+      ensembl_archive <- biomaRt::listEnsemblArchives()
       database_version <- sub(".*? ", "", ensembl_archive$name[2])
     } else {
       database_version <- ensemblRelease
@@ -427,7 +429,7 @@ getGOAnnotation <- function(species = NULL, database = "ensembl", nCores = 1, sa
 ##'  currently supported
 ##' @param goRelease GO release date in yyyy-mm-dd format (e.g., "2022-01-31").
 ##' @param ensemblRelease gene annotation version (e.g., 100 for Ensembl).
-##' @param custom a string that will be matched as a substring against the names of
+##' @param customName a string that will be matched as a substring against the names of
 ##' available custom annotation files
 ##' @param path directory where evoGO annotations are stored. If NULL, the default package
 ##' directory is used ('extdata')
