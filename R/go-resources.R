@@ -12,7 +12,7 @@
 ##' @return ontologyIndex object
 ##' @export
 getOBO <- function(goRelease = NULL) {
-  assertthat::assert_that(isValidGO(goRelease))
+  goRelease <- validGO(goRelease)
 
   url <- ifelse(is.null(goRelease), "http://purl.obolibrary.org/obo/go/go-basic.obo",
     paste0("http://release.geneontology.org/", goRelease, "/ontology/go-basic.obo")
@@ -131,7 +131,6 @@ listGOAnnotations <- function(species = NULL, goRelease = NULL, database = "ense
   assertthat::assert_that(isValidString(database),
     msg = "Argument 'database' should be a character vector with length of one"
   )
-  assertthat::assert_that(isValidGO(goRelease))
   assertthat::assert_that(isValidEnsembl(ensemblRelease))
   assertthat::assert_that(database == "ensembl",
     msg = "Only Ensembl database is currently supported"
@@ -139,7 +138,8 @@ listGOAnnotations <- function(species = NULL, goRelease = NULL, database = "ense
   assertthat::assert_that(is.null(customName) | isValidString(customName),
     msg = "Argument 'customName' should be a character vector with length of one"
   )
-
+  goRelease <- validGO(goRelease)
+  
   # Check path
   if (is.null(path)) {
     package_dir <- path.package("evoGO")
