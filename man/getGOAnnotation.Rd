@@ -5,12 +5,16 @@
 \title{Retrieve and save the latest annotation for species of interest}
 \usage{
 getGOAnnotation(
-  species,
+  species = NULL,
   database = "ensembl",
   nCores = 1,
   save = TRUE,
   path = NULL,
-  deletePrevious = TRUE
+  deletePrevious = FALSE,
+  goRelease = NULL,
+  ensemblRelease = NULL,
+  customAnnotation = NULL,
+  customName = NULL
 )
 }
 \arguments{
@@ -21,17 +25,28 @@ is currently supported.}
 
 \item{nCores}{maximum number of cores to be used}
 
-\item{save}{logical value indicating whether the result should be saved}
+\item{save}{logical value indicating whether the result should be saved (default TRUE)}
 
 \item{path}{path to a directory where the result will be saved. If NULL, the file
 will be saved to the package 'extdata' directory}
 
 \item{deletePrevious}{logical value indicating whether previous annotation for
-that species should be removed when newer is saved to save disk space. Only
-used in case results are saved to 'extdata' directory}
+that species should be removed when newer is saved to save disk space.}
+
+\item{goRelease}{GO release date in yyyy-mm-dd format (e.g., "2022-01-31").
+If not specified, latest version is retrieved}
+
+\item{ensemblRelease}{gene annotation version (e.g., 100 for Ensembl). If not specified,
+latest version is retrieved}
+
+\item{customAnnotation}{a named list where the elements are character vectors containing
+annotation terms and these list elements are named after GO terms associated with the annotation
+terms. See output of getGeneSets() as format reference}
+
+\item{customName}{a string used to save the evoGO annotation object}
 }
 \value{
-list of evoGO objects containing the latest annotation (one per GO domain).
+list of evoGO objects containing the annotation (one per GO domain).
 }
 \description{
 Retrieve and save the latest annotation for species of interest

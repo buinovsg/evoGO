@@ -2,27 +2,30 @@
 % Please edit documentation in R/go-resources.R
 \name{loadGOAnnotation}
 \alias{loadGOAnnotation}
-\title{Load previously retrieved GO annotation as evoGO object}
+\title{Load file with latest release from previously retrieved GO annotation matching the specified
+filter arguments}
 \usage{
 loadGOAnnotation(
-  species,
+  species = NULL,
   database = "ensembl",
   goRelease = NULL,
-  annoVersion = NULL,
+  ensemblRelease = NULL,
+  customName = NULL,
   path = NULL
 )
 }
 \arguments{
 \item{species}{species identifier (example: 'hsapiens' for human)}
 
-\item{database}{database to be used for acquiring of genesets. Only 'ensembl' is
+\item{database}{database used for acquiring of genesets. Only 'ensembl' is
 currently supported}
 
-\item{goRelease}{GO release date in yyyy-mm-dd or yyyymmdd format (e.g., "2022-01-31").
-If not specified, latest saved version is loaded}
+\item{goRelease}{GO release date in yyyy-mm-dd format (e.g., "2022-01-31").}
 
-\item{annoVersion}{gene annotation version (e.g., "GRCh38.p13" for Ensembl). If not specified,
-latest saved version is loaded}
+\item{ensemblRelease}{gene annotation version (e.g., 100 for Ensembl).}
+
+\item{customName}{a string that will be matched as a substring against the names of
+available custom annotation files}
 
 \item{path}{directory where evoGO annotations are stored. If NULL, the default package
 directory is used ('extdata')}
@@ -31,5 +34,6 @@ directory is used ('extdata')}
 list of evoGO objects containing the latest annotation (one per GO domain).
 }
 \description{
-Load previously retrieved GO annotation as evoGO object
+Load file with latest release from previously retrieved GO annotation matching the specified
+filter arguments
 }

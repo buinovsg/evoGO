@@ -4,7 +4,11 @@
 \alias{getOBO}
 \title{Retrieve the ontologyIndex object from the obolibrary.}
 \usage{
-getOBO()
+getOBO(goRelease = NULL)
+}
+\arguments{
+\item{goRelease}{GO release date in yyyy-mm-dd format (e.g., "2022-01-31").
+If not specified, latest saved version is loaded}
 }
 \value{
 ontologyIndex object
