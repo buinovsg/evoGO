@@ -114,7 +114,9 @@ getGeneSets <- function(biomart = "ensembl", dataset = "hsapiens_gene_ensembl", 
 ##' @param customName a string that will be matched as a substring against the names of
 ##' available custom annotation files
 ##' @param returnLatest logical value indicating whether to return information for the 
-##' file with latest GO and Ensembl releases out of the ones matching the specified filter arguments
+##' file with latest GO and Ensembl releases out of the ones matching the specified filter arguments.
+##' If both standard and custom annotation files are among those matching specified filter arguments,
+##' the information for the standard annotation with the latest GO and Ensembl releases is returned
 ##'
 ##' @return a data.frame containing information about previously saved annotations which
 ##' matched specified filter arguments
@@ -368,10 +370,11 @@ getGOAnnotation <- function(species = NULL, database = "ensembl", nCores = 1, sa
       ), "__custom", customName, ".rds"
     )
     full_file_name <- file.path(path, file_name)
-    if (file.exists(full_file_name)) {
-      message(paste0("Previously saved ", file_name, " annotation found and will be loaded"))
-      return(invisible(readRDS(full_file_name)))
-    }
+
+        assertthat::assert_that(!file.exists(full_file_name),
+                            msg = paste0("Annotation file ", file_name,
+                                         " already exists. Please use a different 'cutomName' to save the annotation ",
+                                         "or use loadGOAnnotation() to load the existing annotation"))
   }
 
   for (domain in go_domains) {

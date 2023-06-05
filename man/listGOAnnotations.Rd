@@ -30,7 +30,9 @@ available custom annotation files}
 \item{path}{path to the directory where the annotations files were saved}
 
 \item{returnLatest}{logical value indicating whether to return information for the 
-file with latest GO and Ensembl releases out of the ones matching the specified filter arguments}
+file with latest GO and Ensembl releases out of the ones matching the specified filter arguments.
+If both standard and custom annotation files are among those matching specified filter arguments,
+the information for the standard annotation with the latest GO and Ensembl releases is returned}
 }
 \value{
 a data.frame containing information about previously saved annotations which
