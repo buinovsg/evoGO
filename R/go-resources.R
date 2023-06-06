@@ -120,6 +120,7 @@ getGeneSets <- function(biomart = "ensembl", dataset = "hsapiens_gene_ensembl", 
 ##'
 ##' @return a data.frame containing information about previously saved annotations which
 ##' matched specified filter arguments
+##' @importFrom dplyr %>%
 ##' @export
 listGOAnnotations <- function(species = NULL, goRelease = NULL, database = "ensembl",
                               ensemblRelease = NULL, customName = NULL, path = NULL, returnLatest = FALSE) {
