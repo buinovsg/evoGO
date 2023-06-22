@@ -112,7 +112,7 @@ evoGO <- function(graphTable, geneSets, annotation = NULL, minGenes = 3, nCores 
   res_list <- list(g = g, g_stat = g_stat, annotation = annotation)
   attr(res_list, "GO_version") <- attr(graphTable, "GO_version")
   attr(res_list, "GO_domain") <- attr(graphTable, "GO_domain")
-  attr(res_list, "Annotation_version") <- attr(geneSets, "Annotation_version")
+  attr(res_list, "Annotation_version") <- attr(geneSets, "Annotation")
   class(res_list) <- "evoGO"
   res_list
 }
